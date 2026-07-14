@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard สรุปข้อมูลทะเบียนใบรับรองความพิการ</title>https://img2.pic.in.th/Logo-sw.png
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; }
+    .glass-panel { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+    
+    /* Copy Button Style */
+    .btn-copy-chart {
+        position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.8);
+        border: 1px solid #e5e7eb; border-radius: 6px; padding: 4px; cursor: pointer; color: #6b7280; transition: all 0.2s; z-index: 10;
+    }
+    .btn-copy-chart:hover { background: #f3f4f6; color: #0f766e; border-color: #0f766e; }
+
+    /* --- Print Styles (Landscape) --- */
+    @media print {
+      body { background-color: white; -webkit-print-color-adjust: exact; padding: 0 !important; font-size: 10pt; }
+      .no-print { display: none !important; } 
+      .print-only { display: block !important; }
+      @page { size: A4 landscape; margin: 0.5cm; }
+      
+      .max-w-7xl { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+      .section-card { box-shadow: none !important; border: 1px solid #ccc !important; break-inside: avoid; page-break-inside: avoid; padding: 10px !important; margin-bottom: 10px; }
+      
+      .print\:grid-cols-3 { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 1rem !important; }
+      .print\:col-span-2 { grid-column: span 2 / span 2 !important; }
+      
+      /* Chart sizing for Print */
+      canvas { max-height: 200px !important; width: 100% !important; }
+      .btn-copy-chart { display: none !important; }
+
+      .print-data-table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 5px; }
+      .print-data-table th { background-color: #f0fdfa !important; color: #0f766e !important; border: 1px solid #cbd5e1; padding: 4px 8px; text-align: left; font-weight: bold; }
+      .print-data-table td { border: 1px solid #cbd5e1; padding: 4px 8px; color: #333; vertical-align: middle; }
+      .print-data-table tr:nth-child(even) { background-color: #f8fafc !important; }
+      .print-data-table tr.highlight-row { background-color: #fff7ed !important; font-weight: bold; color: #c2410c; }
+    }
+    .print-only { display: none; }
+  </style>
+</head>
+<body class="py-8 px-4 sm:px-6 lg:px-8 text-gray-800">
+
+  <div class="max-w-7xl mx-auto">
+    
+    <div class="bg-gradient-to-r from-teal-700 to-emerald-600 rounded-2xl shadow-xl overflow-hidden mb-8 text-white relative no-print">
+      <div class="px-6 py-6 flex flex-col xl:flex-row justify-between items-center gap-6 z-10 relative">
+        <div class="flex items-center gap-5 w-full xl:w-auto">
+          <div class="bg-white/20 p-3 rounded-full backdrop-blur-sm shadow-inner hidden sm:block">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold tracking-wide text-white drop-shadow-md">รายงานสรุปข้อมูล</h1>
+            <p class="text-teal-100 opacity-90 text-sm mt-1">ระบบทะเบียนใบรับรองความพิการ รพ.สมเด็จพระสังฆราช (อมฺพรมหาเถร)</p>
+          </div>
+        </div>
+        <div class="glass-panel rounded-xl p-3 flex flex-wrap items-center justify-center gap-3 w-full xl:w-auto">
+            
+            <div class="flex flex-col">
+                <label class="text-[10px] font-bold text-teal-100 uppercase tracking-wider mb-1 pl-1">ปีงบประมาณ</label>
+                <select id="fiscalYearSelect" onchange="filterData()" class="block w-28 rounded-lg border-none bg-white/90 text-teal-900 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-teal-300 text-sm font-bold shadow-sm cursor-pointer hover:bg-white">
+                    <option value="all">ทั้งหมด</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col ml-2">
+                <label class="text-[10px] font-bold text-teal-100 uppercase tracking-wider mb-1 pl-1">เดือน</label>
+                <select id="monthSelect" onchange="filterData()" class="block w-32 rounded-lg border-none bg-white/90 text-teal-900 py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-teal-300 text-sm font-bold shadow-sm cursor-pointer hover:bg-white">
+                    <option value="all">ทุกเดือน</option>
+                    <option value="10">ตุลาคม</option>
+                    <option value="11">พฤศจิกายน</option>
+                    <option value="12">ธันวาคม</option>
+                    <option value="1">มกราคม</option>
+                    <option value="2">กุมภาพันธ์</option>
+                    <option value="3">มีนาคม</option>
+                    <option value="4">เมษายน</option>
+                    <option value="5">พฤษภาคม</option>
+                    <option value="6">มิถุนายน</option>
+                    <option value="7">กรกฎาคม</option>
+                    <option value="8">สิงหาคม</option>
+                    <option value="9">กันยายน</option>
+                </select>
+            </div>
+
+            <div class="h-8 w-px bg-white/30 hidden sm:block mx-3"></div>
+            
+            <button onclick="exportToExcel()" class="flex items-center gap-2 bg-green-500 text-white font-bold py-1.5 px-4 rounded-lg hover:bg-green-600 transition shadow text-sm">Excel</button>
+            <button onclick="window.print()" class="flex items-center gap-2 bg-blue-500 text-white font-bold py-1.5 px-4 rounded-lg hover:bg-blue-600 transition shadow text-sm">พิมพ์</button>
+            
+            <div class="h-8 w-px bg-white/30 hidden sm:block mx-3"></div>
+            
+            <a href="https://socialworkdn.github.io/disabled/" class="flex items-center gap-2 bg-white text-teal-800 font-bold py-1.5 px-4 rounded-lg hover:bg-teal-50 transition shadow text-sm no-underline">กลับหน้าหลัก</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="print-only mb-4 border-b-2 border-teal-700 pb-2">
+        <div class="flex justify-between items-end">
+            <div>
+                <h1 class="text-xl font-bold text-teal-800">รายงานสรุปสถิติผู้พิการ</h1>
+                <p class="text-gray-600 font-semibold text-sm">งานสังคมสงเคราะห์ โรงพยาบาลสมเด็จพระสังฆราช (อมฺพรมหาเถร)</p>
+                <p class="text-xs text-gray-500 mt-1">เงื่อนไขข้อมูล: <span class="font-bold text-black bg-yellow-100 px-1 rounded" id="printConditionBadge">...</span></p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-gray-400">พิมพ์เมื่อ</p>
+                <p class="text-xs font-bold" id="printDate"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading" class="flex flex-col items-center justify-center py-20 no-print">
+      <div class="h-12 w-12 rounded-full border-4 border-teal-200 border-t-teal-600 animate-spin"></div>
+      <p class="text-gray-500 mt-4 font-medium animate-pulse">กำลังประมวลผลข้อมูล...</p>
+    </div>
+
+    <div id="content" class="hidden space-y-6">
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 print:grid-cols-3 gap-4 mb-4">
+        <div class="bg-gradient-to-br from-teal-500 to-teal-700 rounded-xl p-5 text-white shadow-lg relative overflow-hidden section-card print:bg-white print:text-black print:border-2 print:border-teal-600 print:shadow-none flex flex-col justify-center h-full">
+            <div class="absolute -right-8 -bottom-8 text-white opacity-10 no-print pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-48 w-48 transform -rotate-12" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" /></svg>
+            </div>
+            <div class="relative z-10 flex flex-col justify-between h-full">
+                <h2 class="text-teal-50 text-lg font-bold uppercase tracking-wider mb-2 print:text-teal-800 print:text-center print:text-xl leading-tight">ผู้ใช้บริการทั้งหมด</h2>
+                <div class="flex items-baseline gap-3 mt-auto print:justify-center">
+                    <p id="totalCount" class="text-8xl sm:text-8xl font-extrabold tracking-tight drop-shadow-md print:text-black print:text-8xl print:drop-shadow-none leading-none">-</p>
+                    <span class="text-3xl font-medium text-teal-100 print:text-gray-500 print:text-xl">ราย</span>
+                </div>
+                <div id="trendBadge" class="no-print mt-2 inline-flex items-center gap-1 text-sm font-bold bg-white/15 backdrop-blur-sm rounded-lg px-3 py-1.5 w-fit"></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-4 shadow-md border border-gray-100 flex flex-col section-card relative group">
+            <button onclick="copyChartToClipboard('statusChart')" class="btn-copy-chart no-print" title="คัดลอกรูปภาพ"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button>
+            <h3 class="text-gray-700 font-bold text-sm mb-2 border-b pb-1">ประเภทผู้ป่วย</h3>
+            <div class="flex-grow flex flex-row items-center gap-4">
+               <div class="w-full print:w-1/2 relative h-64 print:h-40 flex items-center justify-center"><canvas id="statusChart"></canvas></div>
+               <div class="w-1/2 print-only text-xs" id="statusTableContainer"></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-4 shadow-md border border-gray-100 flex flex-col section-card relative group">
+             <button onclick="copyChartToClipboard('rightsChart')" class="btn-copy-chart no-print" title="คัดลอกรูปภาพ"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button>
+             <h3 class="text-gray-700 font-bold text-sm mb-2 border-b pb-1">สิทธิการรักษา</h3>
+             <div class="flex-grow flex flex-row items-center gap-4">
+                <div class="w-full print:w-1/2 relative h-64 print:h-40 flex items-center justify-center"><canvas id="rightsChart"></canvas></div>
+                <div class="w-1/2 print-only text-xs" id="rightsTableContainer"></div>
+             </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 print:grid-cols-3 gap-4">
+        
+        <div class="lg:col-span-2 print:col-span-2 bg-white rounded-xl shadow-md border border-gray-100 p-4 section-card relative group">
+          <button onclick="copyChartToClipboard('typeChart')" class="btn-copy-chart no-print" title="คัดลอกรูปภาพ"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button>
+          <h3 class="text-base font-bold text-gray-800 mb-2 border-b pb-1">สถิติแยกตามประเภทความพิการ</h3>
+          <div class="relative h-96 w-full no-print">
+            <canvas id="typeChart"></canvas>
+          </div>
+           <div id="typeTableContainer" class="print-only"></div> 
+        </div>
+
+        <div class="space-y-4 print:col-span-1">
+          <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4 section-card relative group">
+            <button onclick="copyChartToClipboard('amphoeChart')" class="btn-copy-chart no-print" title="คัดลอกรูปภาพ"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button>
+            <h3 class="text-sm font-bold text-gray-800 mb-1 border-b pb-1">พื้นที่ให้บริการ</h3>
+            <div class="relative h-64 print:h-32 flex justify-center no-print"><canvas id="amphoeChart"></canvas></div>
+            <div id="amphoeTableContainer" class="print-only pt-1"></div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4 section-card relative group">
+            <button onclick="copyChartToClipboard('provinceChart')" class="btn-copy-chart no-print" title="คัดลอกรูปภาพ"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></button>
+            <h3 class="text-sm font-bold text-gray-800 mb-1 border-b pb-1">แยกตามจังหวัด</h3>
+            <div class="relative h-64 print:h-32 flex justify-center no-print"><canvas id="provinceChart"></canvas></div>
+            <div id="provinceTableContainer" class="print-only pt-1"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="print-only mt-4 pt-4 border-t border-gray-400 flex justify-between text-[10px] text-gray-500">
+        <div>ระบบสารสนเทศงานสังคมสงเคราะห์ โรงพยาบาลสมเด็จพระสังฆราช (อมฺพรมหาเถร)</div>
+        <div>หน้า 1/1</div>
+    </div>
+
+  </div>
+
+  <script>
+    // URL ของ Google Apps Script Web App (ContentService JSON API)
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzNxzsgLGvXxJEGlQubGGMYn53kW54u7cwemANpDVLNauno-6XLo98zBQ4X0HOK7JtZ/exec";
+
+    Chart.register(ChartDataLabels);
+    Chart.defaults.font.family = "'Sarabun', sans-serif";
+    Chart.defaults.color = '#374151';
+
+    const ALL_DISABILITY_TYPES = [
+      "ความพิการทางการมองเห็น",
+      "ความพิการทางการได้ยินหรือสื่อความหมาย",
+      "ความพิการทางการเคลื่อนไหวหรือทางร่างกาย",
+      "ความพิการทางจิตใจหรือพฤติกรรม",
+      "ความพิการทางสติปัญญา",
+      "ความพิการทางการเรียนรู้",
+      "ความพิการทางออทิสติก"
+    ];
+
+    let rawData = [];
+    let currentFilteredData = [];
+    let chartInstances = {}; 
+
+    window.onload = async function() {
+      const d = new Date();
+      document.getElementById('printDate').innerText = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' }) + " น.";
+      try {
+        const res = await fetch(`${GAS_API_URL}?action=getDashboardData`);
+        const result = await res.json();
+        if (result.status === 'success') { initDashboard(result.data); }
+        else { Swal.fire({ icon: 'error', title: 'โหลดข้อมูลไม่สำเร็จ', text: result.message, confirmButtonColor: '#0f766e' }); }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: 'โหลดข้อมูลไม่สำเร็จ', text: error.message, confirmButtonColor: '#0f766e' });
+      }
+    };
+
+    function copyChartToClipboard(canvasId) {
+        const originalCanvas = document.getElementById(canvasId);
+        if (!originalCanvas) return;
+        const newCanvas = document.createElement('canvas');
+        newCanvas.width = originalCanvas.width;
+        newCanvas.height = originalCanvas.height;
+        const ctx = newCanvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, newCanvas.width, newCanvas.height);
+        ctx.drawImage(originalCanvas, 0, 0);
+        newCanvas.toBlob(blob => {
+            const item = new ClipboardItem({ 'image/png': blob });
+            navigator.clipboard.write([item])
+                .then(() => { const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 }); Toast.fire({ icon: 'success', title: 'คัดลอกรูปกราฟเรียบร้อย' }); })
+                .catch(err => { console.error('Copy failed', err); Swal.fire('Error', 'ไม่สามารถคัดลอกได้ (Browser ไม่รองรับ)', 'error'); });
+        });
+    }
+
+    function parseMyDate(dateStr) {
+      if(!dateStr) return null;
+      if (dateStr.indexOf('-') > -1) { let parts = dateStr.split('-'); return { y: parseInt(parts[0]), m: parseInt(parts[1]), d: parseInt(parts[2]) }; }
+      if (dateStr.indexOf('/') > -1) { let parts = dateStr.split('/'); let y = parseInt(parts[2]); if (y > 2400) y -= 543; return { y: y, m: parseInt(parts[1]), d: parseInt(parts[0]) }; }
+      let dObj = new Date(dateStr); if(!isNaN(dObj)) return { y: dObj.getFullYear(), m: dObj.getMonth() + 1, d: dObj.getDate() };
+      return null;
+    }
+
+    function initDashboard(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('content').classList.remove('hidden');
+      if (!data || data.length === 0) return;
+      rawData = data.map(item => {
+        let d = parseMyDate(item.date);
+        item.fiscalYearBE = d ? ((d.m >= 10) ? d.y + 1 : d.y) + 543 : 'ไม่ระบุ';
+        item.month = d ? d.m : null;
+        return item;
+      });
+      populateFiscalYearOptions();
+      filterData();
+    }
+
+    function populateFiscalYearOptions() {
+        const select = document.getElementById('fiscalYearSelect');
+        const years = [...new Set(rawData.map(d => d.fiscalYearBE).filter(y => y !== 'ไม่ระบุ'))];
+        years.sort((a, b) => b - a);
+        years.forEach(y => { let opt = document.createElement('option'); opt.value = y; opt.text = y; select.appendChild(opt); });
+        if(years.length > 0) select.value = years[0]; 
+    }
+
+    function updateTrendBadge() {
+        const badge = document.getElementById('trendBadge');
+        if (!badge) return;
+
+        // นับจำนวนรายการแยกตาม ปี-เดือน (ปฏิทิน) จาก rawData ทั้งหมด ไม่ขึ้นกับ filter
+        const monthCounts = {};
+        rawData.forEach(item => {
+            const d = parseMyDate(item.date);
+            if (!d) return;
+            const key = d.y + '-' + d.m;
+            monthCounts[key] = (monthCounts[key] || 0) + 1;
+        });
+
+        const keys = Object.keys(monthCounts)
+            .map(k => { const [y, m] = k.split('-').map(Number); return { y, m, key: k }; })
+            .sort((a, b) => (a.y - b.y) || (a.m - b.m));
+
+        if (keys.length < 2) { badge.innerHTML = ''; return; }
+
+        const latest = keys[keys.length - 1];
+        const prev = keys[keys.length - 2];
+        const latestCount = monthCounts[latest.key];
+        const prevCount = monthCounts[prev.key];
+        const diff = latestCount - prevCount;
+        const pct = prevCount > 0 ? Math.round((diff / prevCount) * 100) : 100;
+
+        const monthNames = ['', 'ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+        const latestLabel = monthNames[latest.m];
+
+        let icon, text;
+        if (diff > 0) {
+            icon = '▲'; text = `เพิ่มขึ้น ${diff} ราย (${pct}%) จากเดือนก่อน`;
+        } else if (diff < 0) {
+            icon = '▼'; text = `ลดลง ${Math.abs(diff)} ราย (${Math.abs(pct)}%) จากเดือนก่อน`;
+        } else {
+            icon = '–'; text = `เท่ากับเดือนก่อน`;
+        }
+
+        badge.innerHTML = `<span>${icon}</span><span>${text} <span class="opacity-75 font-normal">(${latestLabel}: ${latestCount} ราย)</span></span>`;
+    }
+
+    function filterData() {
+        const selectedYear = document.getElementById('fiscalYearSelect').value;
+        const selectedMonth = document.getElementById('monthSelect').value;
+        const yearText = document.getElementById('fiscalYearSelect').options[document.getElementById('fiscalYearSelect').selectedIndex].text;
+        const monthText = document.getElementById('monthSelect').options[document.getElementById('monthSelect').selectedIndex].text;
+        document.getElementById('printConditionBadge').innerText = `ปีงบ ${yearText} | เดือน: ${monthText}`;
+
+        currentFilteredData = rawData.filter(item => {
+            const matchYear = (selectedYear === 'all' || item.fiscalYearBE == selectedYear);
+            const matchMonth = (selectedMonth === 'all' || item.month == selectedMonth);
+            return matchYear && matchMonth;
+        });
+        updateCharts(currentFilteredData);
+    }
+
+    function exportToExcel() {
+        if (!currentFilteredData || currentFilteredData.length === 0) { alert("ไม่มีข้อมูล"); return; }
+        let csvContent = "\uFEFFวันที่,ปีงบประมาณ,สถานะ,สิทธิ,รายละเอียดความพิการ,จำนวนประเภท,กลุ่ม(ตามกราฟ),จังหวัด,อำเภอ\n";
+        currentFilteredData.forEach(row => {
+            const clean = (val) => (val || "").toString().replace(/"/g, '""');
+            let typeStr = row.type || "";
+            let typeArr = typeStr.split(',').map(t => t.trim()).filter(t => t !== "");
+            let count = typeArr.length;
+            let chartGroup = (count > 1) ? "พิการมากกว่า 1 ประเภท" : (count === 1 ? typeArr[0] : "ไม่ระบุ");
+            let rowString = [ `"${clean(row.date)}"`, `"${clean(row.fiscalYearBE)}"`, `"${clean(row.status)}"`, `"${clean(row.rights)}"`, `"${clean(typeStr)}"`, `"${count}"`, `"${clean(chartGroup)}"`, `"${clean(row.province)}"`, `"${clean(row.amphoe)}"` ].join(",");
+            csvContent += rowString + "\n";
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
+        const year = document.getElementById('fiscalYearSelect').value;
+        const d = new Date(); const dateStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
+        link.download = `รายงานผู้พิการ_ปีงบ${year}_${dateStr}.csv`;
+        link.click();
+    }
+
+    function generatePrintTable(containerId, dataObj, headerLabel = "รายการ") {
+        const container = document.getElementById(containerId);
+        let html = `<table class="print-data-table"><thead><tr><th>${headerLabel}</th><th class="text-right w-12">จำนวน</th></tr></thead><tbody>`;
+        let entries = [];
+        if(headerLabel === "ประเภทความพิการ") {
+             entries = ALL_DISABILITY_TYPES.map(key => [key, dataObj[key] || 0]);
+             if(dataObj["พิการมากกว่า 1 ประเภท"] !== undefined) entries.push(["พิการมากกว่า 1 ประเภท", dataObj["พิการมากกว่า 1 ประเภท"]]);
+        } else {
+             entries = Object.entries(dataObj).sort(([,a],[,b]) => b-a);
+        }
+        entries.forEach(([key, val]) => { 
+            let rowClass = (key === "พิการมากกว่า 1 ประเภท") ? "highlight-row" : "";
+            html += `<tr class="${rowClass}"><td>${key}</td><td class="text-right font-bold">${val}</td></tr>`; 
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+    }
+
+    function updateCharts(data) {
+        let stats = { total: data.length, status: {}, rights: {}, types: {}, provinces: {}, amphoeSplit: { 'ดำเนินสะดวก': 0, 'นอกเขตดำเนินสะดวก': 0 } };
+        ALL_DISABILITY_TYPES.forEach(t => stats.types[t] = 0);
+        stats.types["พิการมากกว่า 1 ประเภท"] = 0;
+
+        data.forEach(row => {
+            const count = (obj, key) => obj[key] = (obj[key] || 0) + 1;
+            count(stats.status, row.status || 'ไม่ระบุ');
+            count(stats.rights, row.rights || 'ไม่ระบุ');
+            count(stats.provinces, row.province || 'ไม่ระบุ');
+            
+            if (row.type) {
+                let typesArr = row.type.split(',').map(t => t.trim()).filter(t => t !== "");
+                typesArr.forEach(t => { if (stats.types.hasOwnProperty(t)) stats.types[t]++; });
+                if (typesArr.length > 1) stats.types["พิการมากกว่า 1 ประเภท"]++;
+            }
+
+            let amp = row.amphoe ? row.amphoe.toString().trim() : '';
+            if (amp.indexOf('ดำเนินสะดวก') > -1) stats.amphoeSplit['ดำเนินสะดวก']++;
+            else stats.amphoeSplit['นอกเขตดำเนินสะดวก']++;
+        });
+
+        document.getElementById('totalCount').innerText = stats.total.toLocaleString();
+        updateTrendBadge();
+
+        generatePrintTable('statusTableContainer', stats.status, "สถานะ");
+        generatePrintTable('rightsTableContainer', stats.rights, "สิทธิ");
+        generatePrintTable('typeTableContainer', stats.types, "ประเภทความพิการ");
+        generatePrintTable('amphoeTableContainer', stats.amphoeSplit, "พื้นที่");
+        generatePrintTable('provinceTableContainer', stats.provinces, "จังหวัด");
+
+        const fontConfig = { family: 'Sarabun', size: 11 };
+        const pieLabelFormatter = (value, ctx) => {
+             if (value === 0) return '';
+             let sum = 0;
+             let dataArr = ctx.chart.data.datasets[0].data;
+             dataArr.map(data => { sum += data; });
+             let percentage = (value * 100 / sum).toFixed(1) + "%";
+             return `${value}\n(${percentage})`;
+        };
+
+        const commonOptions = { 
+            maintainAspectRatio: false, 
+            layout: { padding: 10 },
+            plugins: { 
+                legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: fontConfig, usePointStyle: true, padding: 15 } },
+                datalabels: { color: '#fff', textAlign: 'center', font: { weight: 'bold', size: 11 }, formatter: pieLabelFormatter }
+            } 
+        };
+
+        const createChart = (canvasId, config) => {
+            if (chartInstances[canvasId]) chartInstances[canvasId].destroy();
+            chartInstances[canvasId] = new Chart(document.getElementById(canvasId), config);
+        };
+
+        createChart('statusChart', { 
+            type: 'pie', 
+            data: { labels: Object.keys(stats.status), datasets: [{ data: Object.values(stats.status), backgroundColor: ['#2dd4bf', '#0f766e', '#cbd5e1'], borderWidth: 1, borderColor: '#fff' }] }, 
+            options: { ...commonOptions } 
+        });
+        
+        createChart('rightsChart', { 
+            type: 'pie', 
+            data: { labels: Object.keys(stats.rights), datasets: [{ data: Object.values(stats.rights), backgroundColor: ['#f472b6', '#3b82f6', '#fbbf24', '#a8a29e', '#34d399'], borderWidth: 1, borderColor: '#fff' }] }, 
+            options: { ...commonOptions } 
+        });
+        
+        const typeLabels = [...ALL_DISABILITY_TYPES, "พิการมากกว่า 1 ประเภท"];
+        const typeData = typeLabels.map(t => stats.types[t]);
+        const barColors = typeLabels.map((t, index) => index < 7 ? '#0d9488' : '#f97316');
+
+        createChart('typeChart', { 
+            type: 'bar', 
+            data: { 
+                labels: typeLabels, 
+                datasets: [{ 
+                    label: 'จำนวน', 
+                    data: typeData, 
+                    backgroundColor: barColors, 
+                    borderRadius: 4,
+                    barPercentage: 0.6
+                }] 
+            }, 
+            options: { 
+                indexAxis: 'y', 
+                maintainAspectRatio: false, 
+                scales: { x: { beginAtZero: true, grid: { display: true, color: '#f3f4f6' } }, y: { grid: { display: false } } }, 
+                plugins: { 
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'end', align: 'end', color: (ctx) => ctx.dataIndex === 7 ? '#f97316' : '#0d9488',
+                        font: { weight: 'bold', size: 12 },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                } 
+            } 
+        });
+        
+        createChart('amphoeChart', { 
+            type: 'pie', 
+            data: { labels: Object.keys(stats.amphoeSplit), datasets: [{ data: Object.values(stats.amphoeSplit), backgroundColor: ['#14b8a6', '#e2e8f0'], borderWidth: 1, borderColor: '#fff' }] }, 
+            options: { ...commonOptions } 
+        });
+        
+        createChart('provinceChart', { 
+            type: 'pie', 
+            data: { labels: Object.keys(stats.provinces), datasets: [{ data: Object.values(stats.provinces), backgroundColor: ['#fb923c', '#818cf8', '#34d399', '#f87171', '#a78bfa'], borderWidth: 1, borderColor: '#fff' }] }, 
+            options: { ...commonOptions } 
+        });
+    }
+  </script>
+</body>
+</html>

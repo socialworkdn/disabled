@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ค้นหาประวัติผู้พิการ</title>https://img2.pic.in.th/Logo-sw.png
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style> 
+    /* 2. บังคับใช้ฟอนต์ Sarabun กับทุกส่วน รวมถึงข้อมูลที่ดึงมาแสดงใหม่ */
+    body, * { font-family: 'Sarabun', sans-serif !important; }
+    body { background-color: #f8fafc; } 
+  </style>
+</head>
+<body class="py-8 px-4 sm:px-6 lg:px-8 text-gray-800">
+
+  <div class="max-w-5xl mx-auto">
+    
+    <div class="bg-teal-700 rounded-2xl shadow-lg p-6 mb-6 text-white flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-4">
+        <div class="bg-white/20 p-3 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold tracking-wide">ค้นหาประวัติผู้ใช้บริการ</h1>
+          <p class="text-teal-100 text-sm">ระบบทะเบียนใบรับรองความพิการ</p>
+        </div>
+      </div>
+      
+      <div class="flex gap-2">
+         <a href="https://socialworkdn.github.io/disabled/" class="bg-white text-teal-800 font-bold py-2 px-4 rounded-lg hover:bg-teal-50 transition shadow text-sm no-underline">กลับหน้าบันทึก</a>
+         <a href="https://socialworkdn.github.io/disabled-dashboard/" class="bg-yellow-400 text-teal-900 font-bold py-2 px-4 rounded-lg hover:bg-yellow-300 transition shadow text-sm no-underline">Dashboard</a>
+      </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 mb-8">
+       <form id="searchForm" onsubmit="doSearch(event)" class="flex flex-col md:flex-row gap-4">
+           <div class="flex-grow relative">
+               <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                   <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+               </div>
+               <input type="text" id="searchInput" class="block w-full pl-12 pr-4 py-4 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition outline-none text-lg" placeholder="ค้นหาด้วย HN, ชื่อ - นามสกุล หรือ เลขประจำตัวประชาชน..." required autocomplete="off">
+               <p class="text-xs text-gray-400 mt-1 ml-1">พิมพ์อย่างน้อย 2 ตัวอักษร ระบบจะค้นหาให้อัตโนมัติ</p>
+           </div>
+           <button type="submit" id="searchBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-8 rounded-xl shadow-md transition whitespace-nowrap text-lg flex justify-center items-center">
+               ค้นหาข้อมูล
+           </button>
+       </form>
+    </div>
+
+    <div id="loading" class="hidden flex-col items-center justify-center py-10">
+        <div class="h-10 w-10 rounded-full border-4 border-teal-200 border-t-teal-600 animate-spin"></div>
+        <p class="text-gray-500 mt-3">กำลังค้นหาข้อมูล...</p>
+    </div>
+
+    <div id="resultsContainer" class="space-y-4">
+        </div>
+
+  </div>
+
+  <script>
+    // URL ของ Google Apps Script Web App (ContentService JSON API)
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzNxzsgLGvXxJEGlQubGGMYn53kW54u7cwemANpDVLNauno-6XLo98zBQ4X0HOK7JtZ/exec";
+
+    let debounceTimer = null;
+
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return str.toString()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const query = document.getElementById('searchInput').value.trim();
+        if (query.length < 2) return; // รอให้พิมพ์อย่างน้อย 2 ตัวอักษรก่อนค้นหาอัตโนมัติ
+        debounceTimer = setTimeout(() => {
+            runSearch(query);
+        }, 500);
+    });
+
+    function doSearch(e) {
+        e.preventDefault();
+        clearTimeout(debounceTimer);
+        const query = document.getElementById('searchInput').value;
+        runSearch(query);
+    }
+
+    async function runSearch(query) {
+        const btn = document.getElementById('searchBtn');
+        const container = document.getElementById('resultsContainer');
+        const loading = document.getElementById('loading');
+
+        btn.disabled = true;
+        btn.classList.add('opacity-70', 'cursor-wait');
+        container.innerHTML = '';
+        loading.classList.remove('hidden');
+        loading.classList.add('flex');
+
+        try {
+            const res = await fetch(`${GAS_API_URL}?action=searchData&query=${encodeURIComponent(query)}`);
+            const result = await res.json();
+            if (result.status === 'success') { displayResults(result.data); }
+            else { handleError({ message: result.message }); }
+        } catch (error) {
+            handleError(error);
+        }
+    }
+
+    function displayResults(data) {
+        const btn = document.getElementById('searchBtn');
+        const container = document.getElementById('resultsContainer');
+        const loading = document.getElementById('loading');
+
+        btn.disabled = false;
+        btn.classList.remove('opacity-70', 'cursor-wait');
+        loading.classList.add('hidden');
+        loading.classList.remove('flex');
+
+        if (!data || data.length === 0) {
+            container.innerHTML = `
+                <div class="bg-white p-10 rounded-2xl shadow-sm border border-red-100 text-center text-red-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 text-red-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <h3 class="text-xl font-bold">ไม่พบข้อมูล</h3>
+                    <p class="text-gray-500 mt-1">ลองเปลี่ยนคำค้นหา เช่น ตรวจสอบ HN หรือ ชื่อ-นามสกุล อีกครั้ง</p>
+                </div>`;
+            return;
+        }
+
+        let html = `<div class="mb-4 text-gray-600 font-semibold">พบข้อมูลทั้งหมด <span class="text-teal-600">${data.length}</span> รายการ</div>`;
+
+        data.forEach(item => {
+            // Check File
+            let fileBtn = '';
+            if (item.fileUrl && item.fileUrl.trim() !== '') {
+                const safeUrl = escapeHtml(item.fileUrl);
+                fileBtn = `<a href="${safeUrl}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-bold border border-blue-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg> ดูไฟล์ใบรับรอง</a>`;
+            } else {
+                fileBtn = `<span class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm border border-gray-200"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg> ไม่มีไฟล์แนบ</span>`;
+            }
+
+            let statusBadge = item.status === 'ใหม่' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-gray-100 text-gray-800 border-gray-200';
+
+            html += `
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition">
+                <div class="bg-gray-50 border-b border-gray-200 px-6 py-4 flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-teal-800 text-lg">${escapeHtml(item.name)}</span>
+                        <span class="px-2 py-0.5 rounded text-xs font-bold border ${statusBadge}">${escapeHtml(item.status)}</span>
+                    </div>
+                    <div class="text-sm font-bold text-gray-500">วันที่ใช้บริการ: <span class="text-gray-800">${escapeHtml(item.date)}</span></div>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                        <div><p class="text-xs text-gray-400 uppercase">เลขที่ใบรับรอง / พ.ศ.</p><p class="font-bold text-gray-800 text-base">${escapeHtml(item.fullId)}</p></div>
+                        <div><p class="text-xs text-gray-400 uppercase">HN</p><p class="font-mono text-gray-800 text-base font-bold">${escapeHtml(item.hn)}</p></div>
+                        <div><p class="text-xs text-gray-400 uppercase">เลขประจำตัวประชาชน</p><p class="font-mono text-gray-800 text-base">${escapeHtml(item.idCard)}</p></div>
+                        <div><p class="text-xs text-gray-400 uppercase">อายุ</p><p class="text-gray-800 text-base">${escapeHtml(item.age)} ปี</p></div>
+                        <div><p class="text-xs text-gray-400 uppercase">สิทธิการรักษา</p><p class="text-gray-800 text-base">${escapeHtml(item.rights)}</p></div>
+                        <div class="lg:col-span-3"><p class="text-xs text-gray-400 uppercase">ประเภทความพิการ</p><p class="text-teal-700 font-bold text-base bg-teal-50 inline-block px-3 py-1 rounded mt-1 border border-teal-100">${escapeHtml(item.type)}</p></div>
+                        
+                        ${item.duration ? `<div><p class="text-xs text-gray-400 uppercase">ระยะเวลา (ที่เป็น)</p><p class="text-gray-800">${escapeHtml(item.duration)}</p></div>` : ''}
+                        ${item.cause ? `<div><p class="text-xs text-gray-400 uppercase">สาเหตุ</p><p class="text-gray-800">${escapeHtml(item.cause)}</p></div>` : ''}
+                    </div>
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        ${fileBtn}
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function handleError(error) {
+        document.getElementById('searchBtn').disabled = false;
+        document.getElementById('searchBtn').classList.remove('opacity-70', 'cursor-wait');
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('resultsContainer').innerHTML = `<div class="p-4 bg-red-50 text-red-600 rounded-lg">เกิดข้อผิดพลาด: ${escapeHtml(error.message)}</div>`;
+    }
+  </script>
+</body>
+</html>
