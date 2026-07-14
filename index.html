@@ -288,49 +288,54 @@
           5. แนบไฟล์เอกสาร
         </h2>
 
-        {{!-- คำแนะนำขั้นตอนสำหรับผู้บันทึกที่ไม่ใช่เจ้าหน้าที่ประจำ --}}
-        <div class="mb-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <div class="flex items-start gap-3 mb-3">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <p class="text-blue-800 font-bold text-sm">วิธีแนบไฟล์ใบรับรองความพิการ (ทำก่อนกรอกลิงก์ด้านล่าง)</p>
-          </div>
-          <ol class="space-y-2 pl-2">
-            <li class="flex items-start gap-2 text-sm text-blue-900">
-              <span class="bg-blue-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
-              <span>กดปุ่ม <strong>"เปิด Folder เก็บไฟล์ใบรับรอง"</strong> ด้านล่าง เพื่อเปิด Google Drive Folder กลางของแผนก</span>
-            </li>
-            <li class="flex items-start gap-2 text-sm text-blue-900">
-              <span class="bg-blue-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
-              <span>อัปโหลดไฟล์ใบรับรองความพิการ (PDF หรือรูปภาพ) เข้าไปใน Folder นั้น</span>
-            </li>
-            <li class="flex items-start gap-2 text-sm text-blue-900">
-              <span class="bg-blue-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
-              <span>คลิกขวาที่ไฟล์ที่อัปโหลด → เลือก <strong>"รับลิงก์"</strong> → ตั้งค่าเป็น <strong>"ทุกคนที่มีลิงก์"</strong> → กด <strong>"คัดลอกลิงก์"</strong></span>
-            </li>
-            <li class="flex items-start gap-2 text-sm text-blue-900">
-              <span class="bg-blue-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">4</span>
-              <span>นำลิงก์ที่คัดลอกมาวางในช่อง <strong>"ลิงก์ไฟล์ใบรับรอง"</strong> ด้านล่าง แล้วกดบันทึก</span>
-            </li>
-          </ol>
-          <div class="mt-4">
-            <a id="folderLink" href="https://drive.google.com/drive/folders/FOLDER_ID_PLACEHOLDER" target="_blank"
-               class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl transition shadow text-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
-              เปิด Folder เก็บไฟล์ใบรับรอง
-            </a>
-          </div>
-        </div>
-
         <div class="input-group">
-          <label class="label-text">ลิงก์ไฟล์ใบรับรองความพิการ (วางลิงก์จาก Google Drive)</label>
-          <input type="url" id="fileUrl" name="file_url"
-                 class="input-field bg-white"
-                 placeholder="https://drive.google.com/file/d/...">
-          <p id="fileUrlHint" class="text-xs mt-1 ml-1 h-4 text-gray-400">ไม่บังคับ — สามารถกลับมาเพิ่มภายหลังได้</p>
+          <label class="label-text">ไฟล์ใบรับรองความพิการ (PDF หรือรูปภาพ)</label>
+
+          <div id="uploadDropzone"
+               class="relative border-2 border-dashed border-teal-300 rounded-xl bg-white hover:bg-teal-50/60 transition cursor-pointer p-6 text-center"
+               onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" class="hidden" accept="application/pdf,image/*" onchange="handleFileSelect(event)">
+
+            <div id="uploadIdle" class="flex flex-col items-center gap-2 text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 12v9m0-9l-3 3m3-3l3 3" /></svg>
+              <p class="font-semibold text-sm text-gray-600">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวางที่นี่</p>
+              <p class="text-xs text-gray-400">PDF หรือรูปภาพ ขนาดไม่เกิน 10MB — ไม่บังคับ สามารถกลับมาเพิ่มภายหลังได้</p>
+            </div>
+
+            <div id="uploadProgress" class="hidden flex-col items-center gap-2 text-teal-600">
+              <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <p class="font-semibold text-sm">กำลังอัปโหลด "<span id="uploadFileName"></span>"...</p>
+            </div>
+
+            <div id="uploadDone" class="hidden flex-col items-center gap-2 text-green-600">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <p class="font-bold text-sm" id="uploadDoneName"></p>
+              <div class="flex gap-4 mt-1">
+                <a id="uploadViewLink" href="#" target="_blank" onclick="event.stopPropagation()" class="text-xs font-bold underline text-teal-700 hover:text-teal-800">ดูไฟล์</a>
+                <button type="button" onclick="event.stopPropagation(); resetUpload()" class="text-xs font-bold underline text-red-500 hover:text-red-600">ลบ / เลือกไฟล์ใหม่</button>
+              </div>
+            </div>
+
+            <div id="uploadError" class="hidden flex-col items-center gap-2 text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              <p class="font-semibold text-sm" id="uploadErrorMsg"></p>
+              <button type="button" onclick="event.stopPropagation(); resetUpload()" class="text-xs font-bold underline">ลองใหม่อีกครั้ง</button>
+            </div>
+          </div>
+
+          <input type="hidden" id="fileUrl" name="file_url" value="">
+
+          <button type="button" id="toggleManualLinkBtn" onclick="toggleManualLink()" class="text-xs text-teal-600 hover:text-teal-800 underline mt-2">มีลิงก์ไฟล์ Google Drive อยู่แล้ว? คลิกเพื่อวางลิงก์แทนการอัปโหลด</button>
+
+          <div id="manualLinkWrap" class="hidden mt-2">
+            <input type="url" id="manualFileUrlInput" class="input-field bg-white" placeholder="https://drive.google.com/file/d/...">
+            <p class="text-xs mt-1 ml-1 text-gray-400">วางลิงก์แล้วระบบจะใช้ลิงก์นี้แทนไฟล์ที่อัปโหลด</p>
+          </div>
         </div>
       </div>
 
       <div class="py-4">
+
         <button type="submit" id="submitBtn" class="group relative w-full flex justify-center py-4 px-4 border border-transparent text-lg font-bold rounded-xl text-white bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 focus:outline-none focus:ring-4 focus:ring-teal-200 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
           <span class="absolute left-0 inset-y-0 flex items-center pl-3"><svg class="h-6 w-6 text-teal-100 group-hover:text-white transition ease-in-out duration-150" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg></span>
           <span id="btnText">บันทึกข้อมูลลงทะเบียน</span>
@@ -408,23 +413,102 @@
       });
     }
 
-    function setupFileUrlHint() {
-      const input = document.getElementById('fileUrl');
-      const hint = document.getElementById('fileUrlHint');
-      input.addEventListener('input', () => {
-        const v = input.value.trim();
-        if (!v) {
-          hint.textContent = 'ไม่บังคับ — สามารถกลับมาเพิ่มภายหลังได้';
-          hint.className = 'text-xs mt-1 ml-1 h-4 text-gray-400';
-          return;
-        }
-        if (v.includes('drive.google.com') || v.includes('docs.google.com')) {
-          hint.textContent = '✓ ลิงก์ Google Drive';
-          hint.className = 'text-xs mt-1 ml-1 h-4 text-green-600 font-bold';
+    // --- อัปโหลดไฟล์แนบโดยตรงจากหน้าเว็บ (ส่ง Base64 ไปให้ Apps Script บันทึกลง Google Drive) ---
+    const MAX_UPLOAD_SIZE_MB = 10;
+
+    function showUploadState(stateId) {
+      ['uploadIdle','uploadProgress','uploadDone','uploadError'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+        document.getElementById(id).classList.remove('flex');
+      });
+      const el = document.getElementById(stateId);
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+    }
+
+    function showUploadError(msg) {
+      document.getElementById('uploadErrorMsg').innerText = msg;
+      showUploadState('uploadError');
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (file.size > MAX_UPLOAD_SIZE_MB * 1024 * 1024) {
+        showUploadError(`ไฟล์มีขนาดใหญ่เกินไป (สูงสุด ${MAX_UPLOAD_SIZE_MB}MB)`);
+        document.getElementById('fileInput').value = '';
+        return;
+      }
+      if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) {
+        showUploadError('รองรับเฉพาะไฟล์ PDF หรือรูปภาพเท่านั้น');
+        document.getElementById('fileInput').value = '';
+        return;
+      }
+      uploadFile(file);
+    }
+
+    async function uploadFile(file) {
+      document.getElementById('uploadFileName').innerText = file.name;
+      showUploadState('uploadProgress');
+      try {
+        const base64 = await fileToBase64(file);
+        const res = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'uploadFile', payload: { fileName: file.name, mimeType: file.type || 'application/octet-stream', fileData: base64 } })
+        });
+        const result = await res.json();
+        if (result.status === 'success') {
+          document.getElementById('fileUrl').value = result.fileUrl;
+          document.getElementById('uploadDoneName').innerText = file.name;
+          document.getElementById('uploadViewLink').href = result.fileUrl;
+          showUploadState('uploadDone');
         } else {
-          hint.textContent = 'แนะนำให้ใช้ลิงก์จาก Google Drive เท่านั้น';
-          hint.className = 'text-xs mt-1 ml-1 h-4 text-amber-500';
+          showUploadError(result.message || 'อัปโหลดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
         }
+      } catch (err) {
+        showUploadError('อัปโหลดไม่สำเร็จ: ' + err.message);
+      }
+    }
+
+    function resetUpload() {
+      document.getElementById('fileInput').value = '';
+      document.getElementById('fileUrl').value = '';
+      showUploadState('uploadIdle');
+    }
+
+    function toggleManualLink() {
+      document.getElementById('manualLinkWrap').classList.toggle('hidden');
+    }
+
+    function setupFileUpload() {
+      const dropzone = document.getElementById('uploadDropzone');
+
+      ['dragenter', 'dragover'].forEach(evt => dropzone.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.add('border-teal-500', 'bg-teal-50/60');
+      }));
+      ['dragleave', 'drop'].forEach(evt => dropzone.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.remove('border-teal-500', 'bg-teal-50/60');
+      }));
+      dropzone.addEventListener('drop', e => {
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) handleFileSelect({ target: { files: [file] } });
+      });
+
+      document.getElementById('manualFileUrlInput').addEventListener('input', (e) => {
+        document.getElementById('fileUrl').value = e.target.value.trim();
       });
     }
 
@@ -434,7 +518,7 @@
       initMooSelect();
       setupIdCardValidation();
       setupProgressTracking();
-      setupFileUrlHint();
+      setupFileUpload();
       document.getElementById('addressLoading').classList.remove('hidden');
       try {
         await Promise.all([
@@ -496,6 +580,11 @@
       }
       document.getElementById('disability_type').value = Array.from(checkboxes).map(cb => cb.value).join(', ');
 
+      if (!document.getElementById('uploadProgress').classList.contains('hidden')) {
+        Swal.fire({ icon: 'info', title: 'กรุณารอสักครู่', text: 'ระบบกำลังอัปโหลดไฟล์แนบ กรุณารอให้เสร็จสิ้นก่อนบันทึก', confirmButtonColor: '#0f766e' });
+        return;
+      }
+
       const btn = document.getElementById('submitBtn'), btnText = document.getElementById('btnText');
       btn.disabled = true; btn.classList.add('opacity-75', 'cursor-not-allowed'); btnText.innerText = 'กำลังส่งข้อมูล...';
 
@@ -531,9 +620,9 @@
              document.querySelectorAll('input[name="disability_type_option"]').forEach(cb => cb.checked = false);
              document.getElementById('idCardHint').textContent = '';
              document.getElementById('idCardInput').classList.remove('border-red-400','border-green-400');
-             document.getElementById('fileUrl').value = '';
-             document.getElementById('fileUrlHint').textContent = 'ไม่บังคับ — สามารถกลับมาเพิ่มภายหลังได้';
-             document.getElementById('fileUrlHint').className = 'text-xs mt-1 ml-1 h-4 text-gray-400';
+             resetUpload();
+             document.getElementById('manualFileUrlInput').value = '';
+             document.getElementById('manualLinkWrap').classList.add('hidden');
              window.scrollTo({ top: 0, behavior: 'smooth' });
              if(response.newId) displayNextId.innerText = response.newId;
           });
