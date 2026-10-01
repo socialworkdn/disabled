@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ทะเบียนใบรับรองความพิการ</title><link rel="icon" type="image/png" href="https://i.ibb.co/C5sD85wd/Logo-sw69.png">
+  <title>ทะเบียนใบรับรองความพิการ</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -520,15 +520,43 @@
       setupProgressTracking();
       setupFileUpload();
       document.getElementById('addressLoading').classList.remove('hidden');
+      // ฟังก์ชันช่วยโหลดไฟล์ JSON พร้อมเช็คสถานะ HTTP และรายงาน error แบบละเอียด
+      // (ไม่ใช้ r.json() เพียวๆ เพราะถ้าได้หน้า 404 ที่เป็น HTML กลับมา จะ error แบบงงๆ "Unexpected token <")
+      async function fetchJsonDetailed(url) {
+        let res;
+        try {
+          res = await fetch(url);
+        } catch (networkErr) {
+          throw new Error(`เครือข่ายเรียก ${url} ไม่สำเร็จ: ${networkErr.message}`);
+        }
+        if (!res.ok) {
+          throw new Error(`โหลด ${url} ไม่สำเร็จ (HTTP ${res.status} ${res.statusText})`);
+        }
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (parseErr) {
+          throw new Error(`${url} ไม่ใช่ JSON ที่ถูกต้อง (อาจโดนเซิร์ฟเวอร์ปฏิเสธ) — เนื้อหาที่ได้: ${text.slice(0, 120)}`);
+        }
+      }
+
       try {
-        await Promise.all([
-          fetch('province.json').then(r=>r.json()).then(d=>provincesData=d),
-          fetch('district.json').then(r=>r.json()).then(d=>districtsData=d),
-          fetch('sub_district.json').then(r=>r.json()).then(d=>subDistrictsData=d)
+        const results = await Promise.allSettled([
+          fetchJsonDetailed('province.json').then(d=>provincesData=d),
+          fetchJsonDetailed('district.json').then(d=>districtsData=d),
+          fetchJsonDetailed('sub_district.json').then(d=>subDistrictsData=d)
         ]);
-        provincesData.sort((a,b)=>a.name_th.localeCompare(b.name_th));
-        initProvinceDropdown();
-      } catch (error) { console.error(error); Swal.fire({icon:'error',title:'โหลดข้อมูลไม่สำเร็จ',confirmButtonColor:'#0f766e'}); } 
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length > 0) {
+          const detail = failed.map(f => f.reason && f.reason.message ? f.reason.message : String(f.reason)).join('\n');
+          console.error('โหลดข้อมูลที่อยู่ล้มเหลว:', detail);
+          Swal.fire({ icon: 'error', title: 'โหลดข้อมูลไม่สำเร็จ', html: '<pre style="text-align:left;white-space:pre-wrap;font-size:12px;">' + detail.replace(/</g,'&lt;') + '</pre>', confirmButtonColor: '#0f766e' });
+        }
+        if (provincesData.length) {
+          provincesData.sort((a,b)=>a.name_th.localeCompare(b.name_th));
+          initProvinceDropdown();
+        }
+      } catch (error) { console.error(error); Swal.fire({icon:'error',title:'โหลดข้อมูลไม่สำเร็จ',text: error.message, confirmButtonColor:'#0f766e'}); }
       finally { document.getElementById('addressLoading').classList.add('hidden'); }
     };
 
