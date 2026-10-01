@@ -522,9 +522,9 @@
       document.getElementById('addressLoading').classList.remove('hidden');
       try {
         await Promise.all([
-          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api/latest/province.json').then(r=>r.json()).then(d=>provincesData=d),
-          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api/latest/district.json').then(r=>r.json()).then(d=>districtsData=d),
-          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api/latest/sub_district.json').then(r=>r.json()).then(d=>subDistrictsData=d)
+          fetch('data/province.json').then(r=>r.json()).then(d=>provincesData=d),
+          fetch('data/district.json').then(r=>r.json()).then(d=>districtsData=d),
+          fetch('data/sub_district.json').then(r=>r.json()).then(d=>subDistrictsData=d)
         ]);
         provincesData.sort((a,b)=>a.name_th.localeCompare(b.name_th));
         initProvinceDropdown();
