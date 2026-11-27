@@ -185,6 +185,12 @@
             <div id="provinceTableContainer" class="print-only pt-1"></div>
           </div>
         </div>
+
+        <!-- ICD10 card -->
+        <div class="bg-white rounded-xl shadow-md border border-gray-100 p-4 section-card mt-4">
+          <h3 class="text-base font-bold text-gray-800 mb-3 border-b pb-1">กลุ่มโรค ICD10 (10 อันดับแรก)</h3>
+          <div id="icd10Container" class="text-gray-500 text-sm">กำลังโหลด...</div>
+        </div>
       </div>
     </div>
     
@@ -373,7 +379,7 @@
     }
 
     function updateCharts(data) {
-        let stats = { total: data.length, status: {}, rights: {}, types: {}, provinces: {}, amphoeSplit: { 'ดำเนินสะดวก': 0, 'นอกเขตดำเนินสะดวก': 0 } };
+        let stats = { total: data.length, status: {}, rights: {}, types: {}, provinces: {}, amphoeSplit: { 'ดำเนินสะดวก': 0, 'นอกเขตดำเนินสะดวก': 0 }, icd10: {} };
         ALL_DISABILITY_TYPES.forEach(t => stats.types[t] = 0);
         stats.types["พิการมากกว่า 1 ประเภท"] = 0;
 
@@ -382,7 +388,8 @@
             count(stats.status, row.status || 'ไม่ระบุ');
             count(stats.rights, row.rights || 'ไม่ระบุ');
             count(stats.provinces, row.province || 'ไม่ระบุ');
-            
+            if (row.icd10 && row.icd10.trim()) count(stats.icd10, row.icd10.trim().toUpperCase());
+
             if (row.type) {
                 let typesArr = row.type.split(',').map(t => t.trim()).filter(t => t !== "");
                 typesArr.forEach(t => { if (stats.types.hasOwnProperty(t)) stats.types[t]++; });
@@ -393,6 +400,24 @@
             if (amp.indexOf('ดำเนินสะดวก') > -1) stats.amphoeSplit['ดำเนินสะดวก']++;
             else stats.amphoeSplit['นอกเขตดำเนินสะดวก']++;
         });
+
+        // render ICD10 table (top 10)
+        const icd10El = document.getElementById('icd10Container');
+        const icd10Entries = Object.entries(stats.icd10).sort(([,a],[,b]) => b-a).slice(0, 10);
+        if (icd10Entries.length === 0) {
+            icd10El.innerHTML = '<span class="text-gray-400">ยังไม่มีข้อมูล ICD10</span>';
+        } else {
+            const maxVal = icd10Entries[0][1];
+            icd10El.innerHTML = icd10Entries.map(([code, cnt], idx) => `
+              <div class="flex items-center gap-3 mb-2">
+                <span class="w-5 text-xs text-gray-400 text-right">${idx+1}</span>
+                <span class="font-mono font-bold text-teal-700 w-20 shrink-0">${code}</span>
+                <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                  <div class="bg-teal-500 h-4 rounded-full" style="width:${Math.round(cnt/maxVal*100)}%"></div>
+                </div>
+                <span class="text-sm font-bold text-gray-700 w-8 text-right">${cnt}</span>
+              </div>`).join('');
+        }
 
         document.getElementById('totalCount').innerText = stats.total.toLocaleString();
         updateTrendBadge();

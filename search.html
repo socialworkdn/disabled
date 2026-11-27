@@ -171,6 +171,7 @@
                         
                         ${item.duration ? `<div><p class="text-xs text-gray-400 uppercase">ระยะเวลา (ที่เป็น)</p><p class="text-gray-800">${escapeHtml(item.duration)}</p></div>` : ''}
                         ${item.cause ? `<div><p class="text-xs text-gray-400 uppercase">สาเหตุ</p><p class="text-gray-800">${escapeHtml(item.cause)}</p></div>` : ''}
+                        ${item.icd10 ? `<div><p class="text-xs text-gray-400 uppercase">โรค (ICD10)</p><p class="text-gray-800 font-mono font-bold">${escapeHtml(item.icd10)}</p></div>` : ''}
                     </div>
                     
                     <div class="mt-6 pt-4 border-t border-gray-100">
