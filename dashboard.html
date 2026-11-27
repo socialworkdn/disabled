@@ -336,14 +336,14 @@
 
     function exportToExcel() {
         if (!currentFilteredData || currentFilteredData.length === 0) { alert("ไม่มีข้อมูล"); return; }
-        let csvContent = "\uFEFFวันที่,ปีงบประมาณ,สถานะ,สิทธิ,รายละเอียดความพิการ,จำนวนประเภท,กลุ่ม(ตามกราฟ),จังหวัด,อำเภอ\n";
+        let csvContent = "\uFEFFวันที่,ปีงบประมาณ,สถานะ,สิทธิ,รายละเอียดความพิการ,จำนวนประเภท,กลุ่ม(ตามกราฟ),จังหวัด,อำเภอ,ICD10\n";
         currentFilteredData.forEach(row => {
             const clean = (val) => (val || "").toString().replace(/"/g, '""');
             let typeStr = row.type || "";
             let typeArr = typeStr.split(',').map(t => t.trim()).filter(t => t !== "");
             let count = typeArr.length;
             let chartGroup = (count > 1) ? "พิการมากกว่า 1 ประเภท" : (count === 1 ? typeArr[0] : "ไม่ระบุ");
-            let rowString = [ `"${clean(row.date)}"`, `"${clean(row.fiscalYearBE)}"`, `"${clean(row.status)}"`, `"${clean(row.rights)}"`, `"${clean(typeStr)}"`, `"${count}"`, `"${clean(chartGroup)}"`, `"${clean(row.province)}"`, `"${clean(row.amphoe)}"` ].join(",");
+            let rowString = [ `"${clean(row.date)}"`, `"${clean(row.fiscalYearBE)}"`, `"${clean(row.status)}"`, `"${clean(row.rights)}"`, `"${clean(typeStr)}"`, `"${count}"`, `"${clean(chartGroup)}"`, `"${clean(row.province)}"`, `"${clean(row.amphoe)}"`, `"${clean(row.icd10)}"` ].join(",");
             csvContent += rowString + "\n";
         });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
